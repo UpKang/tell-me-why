@@ -1,0 +1,622 @@
+@import "tailwindcss";
+
+/* 自定义基础样式 - 精致黑白风格 */
+:root {
+  /* 精致黑白主题变量 */
+  --bg-primary: #ffffff;       /* 主背景 - 纯白 */
+  --bg-secondary: #ffffff;     /* 次级背景 - 纯白 */
+  --bg-card: #f7f7f7;          /* 卡片背景 - 极浅灰 */
+  --bg-hover: #eeeeee;         /* hover 背景 */
+  --text-primary: #111111;     /* 主文字 - 近黑 */
+  --text-secondary: #666666;   /* 次级文字 - 中灰 */
+  --text-muted: #999999;       /* 更浅的文字 */
+  --accent: #1a1a1a;           /* 主色调 - 黑色 */
+  --accent-hover: #333333;     /* hover 状态 */
+  --accent-dark: #000000;      /* 深黑 */
+  --accent-light: #f0f0f0;     /* 浅灰背景（替代蓝底） */
+  --border: #e5e5e5;           /* 边框 - 柔灰 */
+  --border-focus: #1a1a1a;     /* focus 边框 - 黑 */
+  --success: #16a34a;          /* 成功绿 */
+  --error: #dc2626;            /* 错误红 */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 8px 30px rgba(0, 0, 0, 0.1);
+  /* 统一圆角令牌 */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* ============================================================
+   * Phase 1 新增：吃瓜版结果页所需色板（"悬疑档案 + 小报头条"风）
+   * 说明：这些 token 目前只服务于 src/lib/components/result/ 下的
+   * ResultView / VerdictHero / TimelineSection / LongformFallback，
+   * 不影响首页、分析中页、历史页的既有视觉。
+   * Phase 2 会继续补充 grain 背景、打字机字体、阵营双色等。
+   * ============================================================ */
+  --accent-hot: #d13c38;         /* 爆点红（小报头条的那种警示红） */
+  --accent-hot-strong: #9b2724;  /* 红色加深：primary 按钮 hover */
+  --accent-gold: #b98a1f;        /* 赢家金 / 反转标记 */
+  --accent-cold: #3a6aa8;        /* 冷静蓝（反方阵营，Phase 2 用） */
+}
+
+/*
+ * 暗黑主题：通过 <html data-theme="dark"> 触发
+ *
+ * 设计思路：保留黑白极简美学，只是把明度翻转：
+ * - 底层用深灰阶而非纯黑，避免 OLED 屏幕上色差过硬
+ * - 文字用近白（#ececec）而非纯白，降低眩光
+ * - 主色（accent）变成近白，保持单色调审美
+ * - 阴影在暗色底下基本不可见，这里保留结构但加深透明度
+ */
+[data-theme="dark"] {
+  --bg-primary: #0f0f10;        /* 主背景 - 近黑 */
+  --bg-secondary: #18181a;      /* 次级背景 - 深灰 */
+  --bg-card: #1f1f22;           /* 卡片背景 - 中深灰 */
+  --bg-hover: #2a2a2e;          /* hover 背景 */
+  --text-primary: #ececec;      /* 主文字 - 近白 */
+  --text-secondary: #a0a0a0;    /* 次级文字 */
+  --text-muted: #707070;        /* 更浅的文字 */
+  --accent: #ececec;            /* 主色调 - 近白 */
+  --accent-hover: #ffffff;      /* hover 状态 */
+  --accent-dark: #ffffff;       /* 深色强调（暗色里其实是最亮） */
+  --accent-light: #2a2a2e;      /* 浅灰背景（暗色里是略亮于卡片的灰） */
+  --border: #2a2a2d;            /* 边框 */
+  --border-focus: #ececec;      /* focus 边框 - 近白 */
+  --success: #22c55e;           /* 成功绿（提亮一点） */
+  --error: #f87171;             /* 错误红（提亮一点） */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.55);
+  --shadow-xl: 0 8px 30px rgba(0, 0, 0, 0.6);
+
+  /* Phase 1：吃瓜版色板在暗色下提亮一档 */
+  --accent-hot: #e6534f;
+  --accent-hot-strong: #d13c38;
+  --accent-gold: #d4a851;
+  --accent-cold: #6ca0de;
+}
+
+/* ==========================================================================
+ * Phase 3：滚动进场揭示（revealOnScroll action 搭档的 CSS）
+ * 原理：初始态 pending（透明下移）→ shown（透明度/位移回到 0）→ 过渡补间。
+ * 只在结果页的 section 上使用；不影响首页、分析中、历史页。
+ * reduced-motion 用户在 action 里直接被标记为 shown，不进入动画分支。
+ * ========================================================================== */
+.reveal-pending {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 500ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-shown {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 500ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-pending,
+  .reveal-shown {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ==========================================================================
+ * 通用 Sticky 顶栏 / 底栏（全局工具类）
+ * --------------------------------------------------------------------------
+ * 为什么需要这个工具类？
+ * - 首页 header / 历史页顶部 / 详情页操作栏 / 流式分析页进度条
+ *   全都需要"固定在页面顶部，不随内容滚动消失"的行为
+ * - 如果各自写 position: sticky，一旦 z-index / 背景 / 磨砂效果不统一，
+ *   就会出现"有的透明一片、有的盖住下文"的不一致问题
+ * - 抽成工具类后，所有顶栏共享同一套视觉层次（磨砂、背景、边线、阴影）
+ *
+ * 为什么用 sticky 不用 fixed？
+ * - sticky 会自动占位（不像 fixed 那样需要给内容区补 padding-top）
+ * - sticky 跟随滚动容器，跨越多层滚动区时比 fixed 更可预期
+ *
+ * 关键前提：
+ * - 父级（也就是滚动祖先）必须有 overflow: auto/scroll 才能让 sticky 生效
+ * - 父级不能有 transform / filter / will-change:transform，否则会形成新的
+ *   包含块让 sticky 失效（这是项目里 .result-view 曾经差点踩到的坑）
+ * ========================================================================== */
+.sticky-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  /* 使用 color-mix 让背景跟主题绑定：
+     - 浅色主题下 = 近白带一点透明，配合 backdrop-filter 形成磨砂
+     - 深色主题下 = 近黑带一点透明，保持视觉层次 */
+  background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  border-bottom: 1px solid var(--border);
+  /* transition 为的是滚动后加 .elevated 类时有平滑阴影变化 */
+  transition: box-shadow 180ms ease, border-color 180ms ease;
+}
+
+/* 滚动超过阈值后由 JS 加这个类，强化"浮在内容上"的感觉 */
+.sticky-topbar.elevated {
+  box-shadow: 0 4px 20px -8px rgba(0, 0, 0, 0.18);
+  border-bottom-color: color-mix(in srgb, var(--border) 160%, transparent);
+}
+
+/* Sticky 底栏（主要给流式分析页的取消按钮用） */
+.sticky-bottombar {
+  position: sticky;
+  bottom: 0;
+  z-index: 50;
+  background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  border-top: 1px solid var(--border);
+}
+
+/* 不支持 backdrop-filter 的浏览器兜底：直接用纯色背景 */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .sticky-topbar,
+  .sticky-bottombar {
+    background: var(--bg-primary);
+  }
+}
+
+/* 基础样式 */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  margin: 0;
+  padding: 0;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
+}
+
+/* 模态框样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(6px);
+}
+
+.modal-content {
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 20px;
+  min-width: 380px;
+  max-width: 90%;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+
+.modal-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  padding: 2px 6px;
+  line-height: 1;
+  transition: all 0.15s;
+  border-radius: 4px;
+}
+
+.modal-close-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+/* 表单样式 */
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 5px;
+  letter-spacing: -0.01em;
+}
+
+.form-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: none;
+}
+
+.form-input::placeholder {
+  color: var(--text-muted);
+}
+
+.form-input:hover:not(:focus) {
+  border-color: #ccc;
+}
+
+/* 密码输入框 */
+.password-wrapper {
+  position: relative;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0;
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+}
+
+.password-toggle-btn:hover {
+  color: var(--text-primary);
+}
+
+/* 按钮样式 */
+.btn {
+  padding: 7px 16px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  letter-spacing: -0.01em;
+}
+
+.btn-primary {
+  background-color: var(--accent);
+  /* 文字色跟主色反色，兼顾浅深两种主题 */
+  color: var(--bg-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-0.5px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn-secondary {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  border-color: #ccc;
+  background-color: var(--bg-card);
+}
+
+.btn-danger {
+  background-color: var(--error);
+  color: #fff;
+}
+
+.btn-danger:hover {
+  opacity: 0.85;
+}
+
+/* 按钮组 */
+.btn-group {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+/* Toast 提示样式 */
+.toast {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  padding: 10px 16px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  z-index: 1100;
+  animation: slideIn 0.25s ease;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(8px);
+}
+
+.toast-success {
+  background-color: var(--success);
+  color: white;
+}
+
+.toast-error {
+  background-color: var(--error);
+  color: white;
+}
+
+.toast-info {
+  background-color: var(--accent);
+  color: var(--bg-primary);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ========== 首页居中单列布局 ========== */
+
+/* 面板卡片 - 不再需要，组件自带样式 */
+/* 面板卡片样式已移至组件内部，这里保留全局基础样式 */
+
+/* 输入项样式已移至 MaterialInputPanel 组件内部 */
+
+/* 参数样式已移至 AnalysisConfigPanel 组件内部（下拉胶囊样式） */
+
+/* 分析按钮样式已移除（发送按钮在 MaterialInputPanel 内） */
+
+/* 空状态样式已移至组件内部 */
+
+/* ========== HTML 报告样式 ========== */
+
+/* HTML 报告内容区域
+ *
+ * 注意：无论应用处于哪种主题（light / dark），此区域都强制使用浅色"纸张"配色。
+ * 原因：分析结果由大模型返回，可能含内联样式（假设浅色背景），在暗黑模式下
+ * 直接继承会出现白字白底或黑字黑底的可读性问题。把它当作一张"打印纸"嵌在
+ * 暗色界面里，视觉上像 Notion / Linear 的做法，且导出 HTML 时呈现一致。
+ */
+.result-html-content {
+  color: #111111;
+  line-height: 1.7;
+  font-size: 0.8rem;
+  padding: 14px;
+  background: #ffffff;
+  border-radius: var(--radius-sm);
+  /* 暗黑模式下给纸张加一圈柔和边框，避免与深色底完全无分界 */
+  border: 1px solid var(--border);
+}
+
+/* HTML 报告章节标题
+ * 纸张卡片内的文字统一使用固定深色，不跟随主题，保证在白纸上可读 */
+.result-html-content h2 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111111;
+  margin-top: 1.25rem;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1.5px solid #1a1a1a;
+  letter-spacing: -0.02em;
+}
+
+.result-html-content h2:first-child {
+  margin-top: 0;
+}
+
+/* HTML 报告揣测标题 */
+.result-html-content h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #111111;
+  margin-top: 1rem;
+  margin-bottom: 0.4rem;
+  padding-left: 8px;
+  border-left: 2px solid #1a1a1a;
+}
+
+/* HTML 报告小标题 */
+.result-html-content h4 {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #666666;
+  margin-top: 0.6rem;
+  margin-bottom: 0.2rem;
+}
+
+/* HTML 报告段落 */
+.result-html-content p {
+  margin: 0.4rem 0;
+  line-height: 1.65;
+  color: #111111;
+}
+
+/* HTML 报告列表 */
+.result-html-content ul,
+.result-html-content ol {
+  margin: 0.4rem 0;
+  padding-left: 1.25rem;
+}
+
+.result-html-content li {
+  margin: 0.2rem 0;
+  line-height: 1.55;
+}
+
+/* 可信度评分 */
+.credibility-score {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--accent-light);
+  color: var(--accent);
+  border-radius: 3px;
+  font-size: 0.68rem;
+  font-weight: 500;
+  margin: 0.4rem 0;
+}
+
+/* 来源标签 */
+.source-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  border-radius: 3px;
+  font-size: 0.65rem;
+  margin-right: 3px;
+}
+
+/* 信息冲突点 */
+.conflict-point {
+  background: #fefce8;
+  border: 1px solid #eab308;
+  color: #713f12;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  margin: 0.6rem 0;
+  font-size: 0.75rem;
+}
+
+/* 关键疑点 */
+.key-suspicion {
+  background: #fef2f2;
+  border: 1px solid #ef4444;
+  color: #7f1d1d;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  margin: 0.6rem 0;
+  font-size: 0.75rem;
+}
+
+/* 引用内容（纸张卡片内，固定浅色） */
+.result-html-content blockquote {
+  background: #f5f5f5;
+  border-left: 3px solid #d0d0d0;
+  padding: 10px 14px;
+  margin: 0.6rem 0;
+  color: #666666;
+  font-size: 0.75rem;
+}
+
+/* 强调内容 */
+.result-html-content strong {
+  color: #111111;
+  font-weight: 600;
+}
+
+/* ========== 提示词位置告知样式 ========== */
+
+.highlight-item {
+  background: var(--accent-light);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  margin: 3px 0;
+}
+
+.highlight-item code {
+  background: var(--bg-card);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.68rem;
+  color: var(--accent);
+  font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+}
+
+.highlight-item .hint {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  display: block;
+  margin-top: 3px;
+}
+
+/* ========== 导出功能样式 ========== */
+
+/* 导出按钮 */
+.btn-export {
+  background-color: var(--success);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-export:hover:not(:disabled) {
+  background-color: #15803d;
+  box-shadow: var(--shadow-md);
+}
+
+.btn-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 导出错误提示 */
+.export-error {
+  background: #fef2f2;
+  border: 1px solid var(--error);
+  color: var(--error);
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  margin: 10px 0;
+  font-size: 0.78rem;
+}
+
+/* ========== 结果页面样式优化 ========== */
+
+.result-text {
+  color: var(--text-primary);
+  line-height: 1.7;
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-size: 0.8rem;
+}
